@@ -14,13 +14,13 @@ object Messages:
       Messages[L](Map(summon[ValueOf[L]].value -> msg))
 
 case class Messages[L <: Language](text: Map[Language, String]):
-   def &[L2 <: Language](messages: Messages[L2])(using Not[L <:< L2]): Messages[L & L2] =
+   def &[L2 <: Language](messages: Messages[L2])(using Not[L2 <:< L]): Messages[L | L2] =
      Messages(text ++ messages.text)
    
-   def apply[L2 <: Language : ValueOf](using L <:< L2): String =
+   def apply[L2 <: L : ValueOf]: String =
       text(summon[ValueOf[L2]].value)
 
-   def narrow[L2 <: Language](using L <:< L2): Messages[L2] = Messages[L2](text)
+   def narrow[L2 <: L]: Messages[L2] = Messages[L2](text)
 
 import languages.common._
 
@@ -39,7 +39,7 @@ extension (ctx: StringContext):
    def it(): Messages[It] = Messages.make["it"](content)
    def pl(): Messages[Pl] = Messages.make["pl"](content)
 
-type MyLangs = En & De & Es & Fr
+type MyLangs = En | De | Es | Fr
 
 var dynamicLang = "es"
 given Language = dynamicLang match
@@ -50,14 +50,13 @@ given Language = dynamicLang match
 
 @main
 def run(): Unit =
-   val x: Messages[MyLangs] = en"This is in English" & de"Das ist Deutsch" & es"Es español" & fr"français" // & fr"frances" KO
+   val x: Messages[MyLangs] = en"This is in English" & de"Das ist Deutsch" & es"Es español" & fr"français" // & fr"frances" 
+
+   val subset: Messages[De | Es] = x.narrow[De | Es]
    println(x[En])
+//   println(x[Ru])
    println(x[Es])
    println(x["fr"])
-// println(x["ru"]) KO
-
-   // This doesn't work. However it works with Unions, the duality is a lie in scalaland
-   //val subset: Messages[Es & Ru] = x.narrow[Es & Ru]
 
 object languages:
    object common:
